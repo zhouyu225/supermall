@@ -8,7 +8,7 @@
 
 <script>
   export default {
-    name: "NarBar"
+    name: "NavBar"
   }
 </script>
 

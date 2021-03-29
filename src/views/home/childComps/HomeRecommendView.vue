@@ -24,7 +24,7 @@
   .recommend{
     text-align: center;
     display: flex;
-    padding: 10px 0 30px;
+    padding: 10px 0 25px;
     border-bottom: 10px solid #eee;
   }
 
