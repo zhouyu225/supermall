@@ -1,124 +1,38 @@
 <template>
   <div id="home">
-    <nav-bar class="home-nav"/>
-    <home-swiper  :banners="banners"/>
-    <home-recommend-view :recommends="recommends"/>
-    <feature-view/>
-    <tab-control :titles="titles" class="tap-control"/>
-    <ul>
-      <li>name1</li>
-      <li>name2</li>
-      <li>name3</li>
-      <li>name4</li>
-      <li>name5</li>
-      <li>name6</li>
-      <li>name7</li>
-      <li>name8</li>
-      <li>name9</li>
-      <li>name10</li>
-      <li>name11</li>
-      <li>name12</li>
-      <li>name13</li>
-      <li>name14</li>
-      <li>name15</li>
-      <li>name16</li>
-      <li>name17</li>
-      <li>name18</li>
-      <li>name19</li>
-      <li>name20</li>
-      <li>name21</li>
-      <li>name22</li>
-      <li>name23</li>
-      <li>name24</li>
-      <li>name25</li>
-      <li>name26</li>
-      <li>name27</li>
-      <li>name28</li>
-      <li>name29</li>
-      <li>name30</li>
-      <li>name31</li>
-      <li>name32</li>
-      <li>name33</li>
-      <li>name34</li>
-      <li>name35</li>
-      <li>name36</li>
-      <li>name37</li>
-      <li>name38</li>
-      <li>name39</li>
-      <li>name40</li>
-      <li>name41</li>
-      <li>name42</li>
-      <li>name43</li>
-      <li>name44</li>
-      <li>name45</li>
-      <li>name46</li>
-      <li>name47</li>
-      <li>name48</li>
-      <li>name49</li>
-      <li>name50</li>
-      <li>name51</li>
-      <li>name52</li>
-      <li>name53</li>
-      <li>name54</li>
-      <li>name55</li>
-      <li>name56</li>
-      <li>name57</li>
-      <li>name58</li>
-      <li>name59</li>
-      <li>name60</li>
-      <li>name61</li>
-      <li>name62</li>
-      <li>name63</li>
-      <li>name64</li>
-      <li>name65</li>
-      <li>name66</li>
-      <li>name67</li>
-      <li>name68</li>
-      <li>name69</li>
-      <li>name70</li>
-      <li>name71</li>
-      <li>name72</li>
-      <li>name73</li>
-      <li>name74</li>
-      <li>name75</li>
-      <li>name76</li>
-      <li>name77</li>
-      <li>name78</li>
-      <li>name79</li>
-      <li>name80</li>
-      <li>name81</li>
-      <li>name82</li>
-      <li>name83</li>
-      <li>name84</li>
-      <li>name85</li>
-      <li>name86</li>
-      <li>name87</li>
-      <li>name88</li>
-      <li>name89</li>
-      <li>name90</li>
-      <li>name91</li>
-      <li>name92</li>
-      <li>name93</li>
-      <li>name94</li>
-      <li>name95</li>
-      <li>name96</li>
-      <li>name97</li>
-      <li>name98</li>
-      <li>name99</li>
-      <li>name100</li>
-    </ul>
+    <nav-bar class="home-nav">
+      <div slot="center">购物街</div>
+    </nav-bar>
+    <tab-control :titles="titles" @tabClick="tabClick" ref="tabControl1" class="tab-control" v-show="istabfixed"/>
+    <Scroll class="content" ref="scroll" :probe-type="3" @scroll="Contentscroll" :pull-up-load="true" @pullingUp="loadmore">
+      <home-swiper :banners="banners" @SwiperImageLoad="SwiperImageLoad"/>
+      <home-recommend-view :recommends="recommends"/>
+      <feature-view/>
+      <tab-control :titles="titles" @tabClick="tabClick" ref="tabControl2"/>
+      <goods-list :goods="showGoods"/>
+    </Scroll>
+    <back-top @click.native="backClick" v-show="isshowbacktop"></back-top>
   </div>
 </template>
 
 <script>
-  import HomeSwiper from "./childComps/HomeSwiper"
+  import HomeSwiper from "./childComps/HomeSwiper";
   import HomeRecommendView from "@/views/home/childComps/HomeRecommendView";
   import FeatureView from "@/views/home/childComps/FeatureView";
+  import GoodsList from "components/content/goods/goodslist";
+  import BackTop from "components/content/backtop/BackTop";
 
   import NavBar from "@/components/common/navbar/NavBar";
   import TabControl from "@/components/content/tabControl/TabControl";
+  import Scroll from "@/components/common/scroll/Scroll"
 
-  import {getHomeMultidata} from "network/home"
+  import {debounce} from "@/common/utils/debounce";
+
+  import {
+    getHomeMultidata,
+    getHomeGoods
+  } from "network/home"
+
 
   export default {
     name: "home",
@@ -127,43 +41,134 @@
       NavBar,
       HomeSwiper,
       HomeRecommendView,
-      FeatureView
+      FeatureView,
+      GoodsList,
+      Scroll,
+      BackTop
     },
     data(){
       return{
         banners:[],
         recommends:[],
-        titles: ["流行","新款","精选"]
+        goods:{
+          "pop":{page:0,list:[]},
+          "new":{page:0,list:[]},
+          "sell":{page:0,list:[]},
+        },
+        titles: ["流行","新款","精选"],
+        currentType:"pop",
+        isshowbacktop:false,
+        tabOffsetTop:0,
+        istabfixed:false,
+        saveY:0
       }
     },
+    computed:{
+      showGoods(){
+        return this.goods[this.currentType].list
+      },
+    },
+
+    activated(){
+      this.$refs.scroll.scrollTo(0,this.saveY)
+      this.$refs.scroll.refresh()
+    },
+
+    deactivated(){
+      this.saveY = this.$refs.scroll.scroll.y
+    },
+
     created() {
-      getHomeMultidata().then(res => {
-        console.log(res);
-        this.banners = res.data.banner.list;
-        this.recommends = res.data.recommend.list;
+      this.getHomeMultidata()
+      this.getHomeGoods("pop")
+      this.getHomeGoods("new")
+      this.getHomeGoods("sell")
+    },
+    mounted() {
+      const refresh = debounce(this.$refs.scroll.refresh)
+      this.$bus.$on("imageLoad",() => {
+        refresh()
       })
+    },
+    methods:{
+      SwiperImageLoad(){
+        this.tabOffsetTop = this.$refs.tabControl2.$el.offsetTop;
+        console.log(this.tabOffsetTop);
+      },
+      loadmore(){
+        this.getHomeGoods(this.currentType)
+        this.$refs.scroll.finishPullUp()
+      },
+      tabClick(index){
+        switch (index){
+          case 0:
+            this.currentType = "pop"
+            break
+          case 1:
+            this.currentType = "new"
+            break
+          case 2:
+            this.currentType = "sell"
+            break
+        }
+        this.$refs.tabControl1.currentindex = index;
+        this.$refs.tabControl2.currentindex = index;
+      },
+      backClick(){
+        this.$refs.scroll.scrollTo(0,0,500)
+      },
+      Contentscroll(position){
+        this.isshowbacktop = -position.y > 2200
+
+        this.istabfixed = -position.y > this.tabOffsetTop
+      },
+
+      getHomeMultidata(){
+        getHomeMultidata().then(res => {
+          console.log(res);
+          this.banners = res.data.banner.list;
+          this.recommends = res.data.recommend.list;
+        })
+      },
+      getHomeGoods(type){
+        const page = this.goods[type].page + 1
+        getHomeGoods(type,page).then(res => {
+          console.log(res);
+          this.goods[type].list.push(...res.data.list)
+          this.goods[type].page += 1
+        })
+      }
     }
   }
 </script>
 
 <style scoped>
   #home{
-    padding-top: 44px;
+    height:100vh;
+    /*padding-top: 44px;*/
+    position: relative;
   }
 
   .home-nav{
     background-color: var(--color-tint);
     color:#ffffff;
 
-    position: fixed;
-    left:0px;
-    right:0px;
-    top:0px;
-    z-index: 1;
+    /*position: fixed;*/
+    /*left:0px;*/
+    /*right:0px;*/
+    /*top:0px;*/
+    /*z-index: 2;*/
+  }
+
+  .content{
+    position: absolute;
+    top:44px;
+    bottom: 49px;
+    overflow: hidden;
   }
 
   .tab-control{
-    position: sticky;
-    top:44px
+    position: relative;
+    z-index: 3;
   }
 </style>

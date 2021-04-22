@@ -26,6 +26,7 @@
     display: flex;
     padding: 10px 0 25px;
     border-bottom: 10px solid #eee;
+    background-color: white;
   }
 
   .recommend-item{

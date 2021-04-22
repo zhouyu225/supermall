@@ -187,6 +187,7 @@ export default {
 #hy-swiper {
   overflow: hidden;
   position: relative;
+  background-color: white;
 }
 .swiper {
   display: flex;
